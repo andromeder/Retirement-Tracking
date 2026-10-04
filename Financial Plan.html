@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Financial Plan</title>
+<title>Financial Manager</title>
 <style>
 :root{
   --paper:#F2EADD; --card:#FAF5EC; --ink:#1E1A17; --ink-2:#5F584E; --ink-3:#8A8175;
@@ -146,7 +146,7 @@ select.mon{font-size:14px;padding:5px 8px}
 <body>
 <header class="top">
   <div class="brand">
-    <h1><span class="hl">Financial Plan</span></h1>
+    <h1><span class="hl">Financial Manager</span></h1>
     <p id="asof"></p>
   </div>
   <nav class="tabs" role="tablist">
@@ -1037,7 +1037,7 @@ $('bk-load').addEventListener('change', async e => {
     if (!confirm(`Replace everything on this page with the backup (latest month ${monthLabel(s.months[s.months.length - 1])})?`)) return;
     s.settings = Object.assign(clone(Engine.DEFAULTS), s.settings); state = withBudget(s);
     save(); compute(); buildGrid(); fillSettings(); render(); defaultNewMonth();
-  } catch (err) { alert('That file is not a Financial Plan backup.'); }
+  } catch (err) { alert('That file is not a Financial Manager backup.'); }
   e.target.value = '';
 });
 document.querySelectorAll('#horizon button').forEach(b => b.addEventListener('click', () => {
