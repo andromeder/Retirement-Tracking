@@ -137,6 +137,8 @@ tr.tx .n{display:block;color:var(--ink-3);font-size:11px}
 select.cat,select.mon{font:12.5px var(--sans);padding:4px 6px;border:1px solid var(--rule-2);border-radius:2px;background:#fff;color:var(--ink);max-width:230px}
 select.mon{font-size:14px;padding:5px 8px}
 .notice{background:#FFFDE0;border:1px solid var(--yellow-d);border-radius:2px;padding:8px 12px;font-size:13px}
+.chart text.cap{fill:var(--ink-2);font-size:11px}.chart text.net{fill:var(--ink);font-size:11px;font-weight:600}.chart text.sel{fill:var(--ink);font-weight:700}
+.chart .hit.pick{cursor:pointer}
 .chart text.lab{fill:var(--ink-2);font-size:12px}.chart text.val{fill:var(--ink);font-size:12px;font-weight:600}
 .seg{display:inline-flex;border:1px solid var(--ink);border-radius:2px;overflow:hidden}
 .seg button{font:500 12px var(--sans);border:0;background:transparent;padding:5px 10px;cursor:pointer;color:var(--ink)}
@@ -287,6 +289,11 @@ select.mon{font-size:14px;padding:5px 8px}
       <p class="sub" style="margin-bottom:0">Choose “Load transactions folder” and select Financial/Budget/Transactions. The browser will ask whether to “upload” the files: they are only read into this page on this computer and are not sent anywhere. Load the folder again each month after adding new files; transactions already loaded are not duplicated.</p>
     </div>
     <div id="bd-body" style="display:flex;flex-direction:column;gap:18px">
+      <div class="card">
+        <h2>Income vs spending by month</h2>
+        <p class="sub" id="bd-trend-sub"></p>
+        <div class="legend" id="lg-trend"></div><div class="chart" id="ch-trend"></div>
+      </div>
       <div class="kpis" id="bd-kpis"></div>
       <div class="grid2">
         <div class="card">
@@ -429,36 +436,41 @@ const Engine = (() => {
     ['donations', 'Donations', 'fixed'], ['loans', 'Loan payments', 'fixed'],
     ['groceries', 'Groceries', 'variable'], ['dining', 'Dining, coffee & delivery', 'variable'],
     ['transport', 'Transport, parking & fuel', 'variable'], ['travel', 'Travel', 'variable'], ['shopping', 'Shopping', 'variable'],
-    ['health', 'Health & pharmacy', 'variable'], ['entertainment', 'Entertainment', 'variable'], ['services', 'Household services', 'variable'],
+    ['health', 'Health & pharmacy', 'variable'], ['personal', 'Personal care', 'variable'], ['pets', 'Pets', 'variable'], ['home', 'Home maintenance', 'variable'], ['entertainment', 'Entertainment', 'variable'], ['services', 'Household services', 'variable'],
     ['cash', 'Cash withdrawals', 'variable'], ['fees', 'Fees & taxes', 'variable'], ['uncategorized', 'Uncategorized', 'variable'],
-    ['transfer', 'Transfers & card payments', 'transfer'], ['savings_tx', 'Transfers to savings', 'transfer'],
+    ['transfer', 'Transfers & card payments', 'transfer'], ['savings_tx', 'Transfers to savings & investments', 'transfer'],
   ].map(([id, name, tier]) => ({ id, name, tier }));
   const CAT = Object.fromEntries(CATS.map(c => [c.id, c]));
   // First match wins. These are starting guesses; a reassignment in the page always takes priority.
   const RULES = [
     [/PAYROLL|SALARY|DIRECT DEPOSIT/, 'salary'],
     [/DEPOSIT INTEREST|INTEREST PAID/, 'interest'],
-    [/FIND & SAVE/, 'savings_tx'],
-    [/PAYMENT - THANK YOU|PAIEMENT - MERCI|ONLINE BANKING TRANSFER|ONLINE TRANSFER|TRANSFER (TO|FROM)/, 'transfer'],
-    [/MORTGAGE|\bRENT\b|PROPERTY TAX|CONDOMINIUM|CONDO FEE/, 'housing'],
+    [/FIND & SAVE|WS INVESTMENTS|^INVESTMENT\b/, 'savings_tx'],
+    [/PAYMENT - THANK YOU|PAIEMENT - MERCI|ONLINE BANKING TRANSFER|ONLINE TRANSFER|TRANSFER (TO|FROM)|FOREIGN EXCHANGE/, 'transfer'],
+    [/MORTGAGE|\bRENT\b|PROPERTY TAX|\bTAXES$|CONDOMINIUM|CONDO FEE/, 'housing'],
     [/\bLOAN\b/, 'loans'],
     [/ATM WITHDRAWAL|CASH WITHDRAWAL/, 'cash'],
-    [/ENBRIDGE|HYDRO|UTILITY BILL|RELIANCE|WATER BILL/, 'utilities'],
-    [/INSURANCE|AVIVA|BALANCEPROTECTOR/, 'insurance'],
+    [/ENBRIDGE|HYDRO|UTILITY BILL|\bUTIL\b|ALECTRA|RELIANCE|WATER BILL|SOLID WASTE/, 'utilities'],
+    [/INSURANCE|\bINS CO\b|AVIVA|BALANCEPROTECTOR/, 'insurance'],
     [/BELL MOBILITY|BELL CANADA|ROGERS|TELUS|\bFIDO\b|KOODO/, 'phone'],
-    [/APPLE\.COM\/BILL|SPOTIFY|QOBUZ|NETFLIX|ANTHROPIC|NORDVPN|SL\.NORD|PRIME MEMBER|NOOM|SUBSCRIP|DISNEY PLUS|OPENAI/, 'subscriptions'],
-    [/\bGYM\b|FITNESS|YOGA|PILATES/, 'fitness'],
-    [/GREENPEACE|HOSPITAL FO|DONAT|FOUNDATION|CHARIT|UNICEF/, 'donations'],
-    [/AIR CAN|AIRCANADA|WESTJET|HOTEL|AIRBNB|EXPEDIA|SAILY|VIA RAIL/, 'travel'],
+    [/APPLE\.COM\/BILL|SPOTIFY|QOBUZ|NETFLIX|ANTHROPIC|NORDVPN|SL\.NORD|PRIME MEMBER|NOOM|SUBSCRIP|DISNEY PLUS|OPENAI|PROTON|CURSOR|MIDJOURNEY|YOUTUBE|BELL MEDIA/, 'subscriptions'],
+    [/\bGYM\b|FITNESS|YOGA|PILATES|ERGATTA/, 'fitness'],
+    [/GREENPEACE|HOSPITAL FO|DONAT|FOUNDATION|FONDATION|\bFDN\b|CHARIT|UNICEF/, 'donations'],
+    [/\bVET\b|\bPETS?\b|PETNATION|ROVER\.COM|CHEWY/, 'pets'],
+    [/WATERPROOFING|CONSTRUCTI|HEATING|PLUMB|ROOFING|HOME DEPOT|\bRONA\b/, 'home'],
+    [/SALON|BARBER|SEPHORA|\bSPA\b/, 'personal'],
+    [/AIR CAN|AIRCANADA|WESTJET|AIRWAYS|IBERIA|HOTEL|FOUR SEASONS|RITZ-CARLTON|AIRBNB|EXPEDIA|SAILY|VIA RAIL|RAILCLICK|\bSIXT\b|CBSA|DUTY F|GLOBALBLUE/, 'travel'],
     [/UBER ?EATS/, 'dining'],
-    [/UBER|LYFT|IMPARK|PARKING|PRESTO|\bTTC\b|PETRO|\bESSO\b|\bSHELL\b|SUNOCO|CIRCLE K|BRIDGE COMMISSION|407 ?ETR|AIR-SERV/, 'transport'],
-    [/PHARMA|DENT|ENDODON|ORTHODON|MEDICAL|CLINIC|SHOPPERS DRUG|WELL\.CA|PHYSIO|OPTOM/, 'health'],
-    [/TICKETMASTER|CINEPLEX|THEATRE|THOMSONHALL|MASSEY/, 'entertainment'],
+    [/UBER|LYFT|IMPARK|PARKING|PRESTO|\bTTC\b|PETRO|\bESSO\b|\bSHELL\b|SUNOCO|EXXON|CIRCLE K|BRIDGE COMMISSION|407 ?ETR|AIR-SERV|VOLKSWAGEN|\bTIRE\b|CAR WASH|TAXI|PARK INDIGO|UPE EXPRESS/, 'transport'],
+    [/PHARMA|FARMAC|\bSDM\b|HEALTH HUT|DENT|ENDODON|ORTHODON|MEDICAL|CLINIC|SHOPPERS DRUG|WELL\.CA|PHYSIO|OPTOM/, 'health'],
+    [/TICKETMASTER|CINEPLEX|THEATRE|THOMSONHALL|MASSEY|\bTSO\b|JAZZ|MUSEE|MUSEUM/, 'entertainment'],
     [/CLEANERS|CLEANING|SERVICEWORKS|LAUNDRY/, 'services'],
-    [/PROVINCIAL TAX|ANNUAL FEE|MONTHLY FEE|OVERDRAFT|MULTIPRODUCT REBATE|INTEREST CHARGE|SERVICE FEE|\bNSF\b/, 'fees'],
-    [/INSTACART|LOBLAWS|WHOLEFDS|WHOLE FOODS|SOBEYS|NO FRILLS|FARM BOY|COSTCO|MARKET|GROCER/, 'groceries'],
-    [/STARBUCKS|COFFEE|CAFE|ESPRESSO|DOORDASH|RESTAURANT|PIZZA|BURGER|SUSHI|KITCHEN|^TST|^SQ \*|\bBAR\b|\bPUB\b|TAVERNA|\bDELI\b|FORNO|VENDING|FOODS\b|FRESCO|TIM HORTONS|MCDONALD/, 'dining'],
-    [/AMZN|AMAZON|\bREI\b|^SP |IKEA|WALMART|CANADIAN TIRE|BEST BUY/, 'shopping'],
+    [/PROVINCIAL TAX|ANNUAL FEE|MONTHLY FEE|OVERDRAFT|MULTIPRODUCT REBATE|INTEREST CHARGE|PURCHASE INTEREST|CASH ADVANCE|SERVICE FEE|\bNSF\b/, 'fees'],
+    [/INSTACART|LOBLAWS|WHOLEFDS|WHOLE FOODS|SOBEYS|NO FRILLS|FARM BOY|COSTCO|LONGO|EATALY|BUTCHER|SUPERMERCATO|ALIMENTARI|FARM PRODUCTS|BEER STORE|LCBO|MARKET|GROCER/, 'groceries'],
+    [/STARBUCKS|COFFEE|CAFE|ESPRESSO|DOORDASH|RESTAURANT|PIZZA|BURGER|SUSHI|KITCHEN|^TST|^SQ \*|\bBAR\b|\bPUB\b|TAVERNA|\bDELI\b|FORNO|VENDING|FOODS\b|FRESCO|TIM HORTONS|MCDONALD|IQ FOOD|E11EVEN|DINER|SHAWARMA|BAKERY|BAKING|BOULANGERIE|BAGEL|RISTORANTE|PIZZERIA|OSTERIA|GELATERIA|PASTICCERIA|ENOTECA|CAFF|COFFE|DISTILLERY|BEERTOWN|CUISINE|GRILL|STREET FOOD|THAI EXPRESS|STEAK|GOURMAND|CONCESSIONS|F&B/, 'dining'],
+    [/AMZN|AMAZON|\bREI\b|^SP |IKEA|WALMART|CANADIAN TIRE|BEST BUY|APPLE\.COM\/US|LULULEMON|INDIGO|\bNIKE|POSHMARK|\bSPORTS?\b|BIKE SHOP|BLAZER|BIRKS|GALLERY|LIBRAIRIE|FEDEX/, 'shopping'],
+    // Anything else bought in a city abroad is treated as trip spending.
+    [/ (ROMA|VENEZIA|MADRID|BARCELONA|LONDON|NEW YORK|BOSTON|BUFFALO|ROCHESTER|JERSEY CITY|FIUMICINO|MESTRE|BIRMINGHAM|CORTINA.*|.*S\.CRO)$/, 'travel'],
   ];
   // The label used to treat transactions as "the same merchant": store numbers and reference codes removed.
   function merchantKey(desc) {
@@ -544,7 +556,12 @@ const Engine = (() => {
     });
     return { cats, tot, src, expenses: tot.fixed + tot.variable, net: tot.income - tot.fixed - tot.variable };
   }
-  const Budget = { CATS, CAT, merchantKey, fingerprint, categorize, parseTransactions, mergeTx, summarize };
+  // One row per calendar month: income, spending and the difference. Transfers are left out.
+  function monthly(tx, overrides) {
+    const months = [...new Set(tx.map(x => x.d.slice(0, 7)))].sort();
+    return months.map(m => { const R = summarize(tx, overrides, m); return { m, income: R.tot.income, fixed: R.tot.fixed, variable: R.tot.variable, spend: R.expenses, net: R.net }; });
+  }
+  const Budget = { CATS, CAT, merchantKey, fingerprint, monthly, categorize, parseTransactions, mergeTx, summarize };
   return { DEFAULTS, TAX, BIRTH_YEAR, END_YEAR, retireYear, cellCad, totals, forecast, retirement, personTax, Budget };
 })();
 if (typeof module !== 'undefined') module.exports = Engine;
@@ -826,6 +843,41 @@ function hbar(el, items, label) {
     h.addEventListener('pointermove', on); h.addEventListener('focus', on); h.addEventListener('pointerleave', off); h.addEventListener('blur', off);
   });
 }
+// Monthly income and spending as paired columns, with the over/under amount on its own panel beneath.
+function trendChart(el, rows, selected, onPick) {
+  const W = el.clientWidth; if (!W) return;
+  const m = { t: 8, r: 6, l: 54 }, hTop = 190, gap = 34, hBot = 120, H = m.t + hTop + gap + hBot + 26, iw = W - m.l - m.r, band = iw / rows.length;
+  const A = nice(Math.max(1, ...rows.map(r => Math.max(r.income, r.spend)))), y = v => m.t + hTop - (Math.max(0, v) / A.top) * hTop;
+  const Bn = nice(Math.max(1, ...rows.map(r => Math.abs(r.net)))), hi = Math.max(0, ...rows.map(r => r.net)), lo = Math.min(0, ...rows.map(r => r.net));
+  const top2 = Math.ceil(hi / Bn.step - 1e-9) * Bn.step, bot2 = -Math.ceil(-lo / Bn.step - 1e-9) * Bn.step, y0 = m.t + hTop + gap;
+  const y2 = v => y0 + (top2 - v) / ((top2 - bot2) || 1) * hBot;
+  const bw = Math.min(24, Math.max(4, (band - 12) / 2)), nw = Math.min(30, Math.max(6, band * 0.45));
+  const col = (x, yt, yb, w, fill, extra = '') => { const r = Math.min(4, w / 2, Math.abs(yb - yt)), up = yt < yb, s = up ? 1 : -1;
+    return `<path d="M${x},${yb}V${yt + s * r}Q${x},${yt} ${x + r},${yt}H${x + w - r}Q${x + w},${yt} ${x + w},${yt + s * r}V${yb}Z" fill="${fill}"${extra}/>`; };
+  let g = '', bars = '', hits = '', bgs = '';
+  for (let v = 0; v <= A.top + 1e-6; v += A.step) g += `<line class="gl" x1="${m.l}" x2="${W - m.r}" y1="${y(v)}" y2="${y(v)}"/><text x="${m.l - 8}" y="${y(v) + 4}" text-anchor="end">${axis(v)}</text>`;
+  for (let v = bot2; v <= top2 + 1e-6; v += Bn.step) g += `<line class="gl" x1="${m.l}" x2="${W - m.r}" y1="${y2(v)}" y2="${y2(v)}"/><text x="${m.l - 8}" y="${y2(v) + 4}" text-anchor="end">${v < 0 ? '−' : ''}${axis(Math.abs(v))}</text>`;
+  g += `<text class="cap" x="${m.l}" y="${y0 - 12}">Income minus spending: + left over, − overspent</text>`;
+  rows.forEach((r, i) => {
+    const x0 = m.l + i * band, cx = x0 + band / 2, pos = r.net >= 0;
+    bgs += `<rect class="bgb" data-i="${i}" x="${x0}" y="${m.t}" width="${band}" height="${H - m.t - 20}"/>`;
+    bars += col(cx - bw - 1, y(r.income), m.t + hTop, bw, GREY) + col(cx + 1, y(r.spend), m.t + hTop, bw, INK) + col(cx - nw / 2, y2(r.net), y2(0), nw, pos ? '#2F6B3F' : '#A8321F');
+    g += `<text class="net" x="${cx}" y="${pos ? y2(r.net) - 5 : y2(r.net) + 13}" text-anchor="middle">${pos ? '+' : ''}${compact(r.net)}</text>` +
+      `<text class="${r.m === selected ? 'sel' : ''}" x="${cx}" y="${H - 6}" text-anchor="middle">${new Date(+r.m.slice(0, 4), +r.m.slice(5) - 1, 1).toLocaleString('en-CA', { month: 'short' })}${rows[0].m.slice(0, 4) !== rows[rows.length - 1].m.slice(0, 4) ? " '" + r.m.slice(2, 4) : ''}</text>`;
+    hits += `<rect class="hit pick" tabindex="0" data-i="${i}" x="${x0}" y="${m.t}" width="${band}" height="${H - m.t}" aria-label="${monthLabel(r.m)}"/>`;
+  });
+  el.innerHTML = `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" role="img" aria-label="Income, spending and the difference for each month">${bgs}${g}<line x1="${m.l}" x2="${W - m.r}" y1="${m.t + hTop}" y2="${m.t + hTop}" stroke="${INK}"/><line x1="${m.l}" x2="${W - m.r}" y1="${y2(0)}" y2="${y2(0)}" stroke="${INK}"/>${bars}${hits}</svg>`;
+  const off = () => { el.querySelectorAll('.bgb.on').forEach(b => b.classList.remove('on')); hideTip(); };
+  el.querySelectorAll('.hit').forEach(h => {
+    const i = +h.dataset.i, r = rows[i], on = e => {
+      el.querySelectorAll('.bgb').forEach(b => b.classList.toggle('on', +b.dataset.i === i));
+      const html = `<b class="t">${monthLabel(r.m)}</b>` + tipRow(GREY, 'Income', money2(r.income)) + tipRow(INK, 'Spending', money2(r.spend)) + tipRow('', 'of which fixed', money2(r.fixed)) + tipRow('', 'of which variable', money2(r.variable)) + tipRow(r.net >= 0 ? '#2F6B3F' : '#A8321F', r.net >= 0 ? 'Left over' : 'Overspent by', money2(Math.abs(r.net)), 'sum');
+      if (e.type === 'focus') { const b = e.target.getBoundingClientRect(); showTip(html, b.right, b.top); } else showTip(html, e.clientX, e.clientY);
+    };
+    h.addEventListener('pointermove', on); h.addEventListener('focus', on); h.addEventListener('pointerleave', off); h.addEventListener('blur', off);
+    h.addEventListener('click', () => onPick(r.m)); h.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onPick(r.m); } });
+  });
+}
 function tierTable(el, R, tier) {
   const tx = state.budget.tx, spend = tier === 'fixed' || tier === 'variable';
   const cats = Object.values(R.cats).filter(c => c.tier === tier && c.count).sort((a, b) => Math.abs(b.total) - Math.abs(a.total));
@@ -853,6 +905,10 @@ function renderBudget() {
   $('bd-month').innerHTML = months.map(m => `<option value="${m}"${m === bMonth ? ' selected' : ''}>${monthLabel(m)} (${mc[m]} transactions)</option>`).join('') + `<option value="all"${bMonth === 'all' ? ' selected' : ''}>All months (${tx.length} transactions)</option>`;
   const bySrc = {}; tx.forEach(x => { bySrc[x.s] = (bySrc[x.s] || 0) + 1; });
   $('bd-status').textContent = `${tx.length} transactions loaded, ${dayLabel(tx[0].d)} to ${dayLabel(tx[tx.length - 1].d)}: ${Object.entries(bySrc).map(([s, n]) => `${s} ${n}`).join(', ')}.` + (b.status ? ' ' + b.status : '');
+  const series = B.monthly(tx, b.overrides).slice(-18), sI = series.reduce((a, r) => a + r.income, 0), sS = series.reduce((a, r) => a + r.spend, 0);
+  $('bd-trend-sub').textContent = `${monthLabel(series[0].m)} to ${monthLabel(series[series.length - 1].m)}, CAD, transfers excluded. Over the period: income ${money(sI)}, spending ${money(sS)}, ${sI >= sS ? 'left over' : 'overspent by'} ${money(Math.abs(sI - sS))}. Select a month to open it below.`;
+  legend($('lg-trend'), [{ name: 'Income', color: GREY }, { name: 'Spending', color: INK }, { name: 'Left over', color: '#2F6B3F' }, { name: 'Overspent', color: '#A8321F' }]);
+  trendChart($('ch-trend'), series, bMonth, mo => { bMonth = mo; bNote = ''; renderBudget(); });
   const R = B.summarize(tx, b.overrides, bMonth === 'all' ? null : bMonth), per = bMonth === 'all' ? 'all months' : monthLabel(bMonth);
   $('bd-kpis').innerHTML =
     kpi(`Income, ${per}`, money2(R.tot.income), Object.values(R.cats).filter(c => c.tier === 'income' && c.count).map(c => `${esc(c.name)} ${money(c.total)}`).join(' · '), true) +
