@@ -31,7 +31,9 @@ nav.tabs button[aria-selected="true"] span{background:linear-gradient(transparen
 .tools{display:flex;gap:6px;padding-bottom:12px}
 button.btn,label.btn{font:500 12px var(--sans);background:transparent;color:var(--ink);border:1px solid var(--ink);border-radius:2px;padding:6px 10px;cursor:pointer}
 button.btn:hover,label.btn:hover{background:var(--ink);color:var(--paper)}
-button.btn.primary{background:var(--yellow);font-weight:600}
+button.btn.primary,label.btn.primary{background:var(--yellow);font-weight:600}
+label.btn.primary:hover{background:var(--ink);color:var(--yellow)}
+label.btn.quiet{border-color:var(--rule-2);color:var(--ink-2)}
 button.btn.primary:hover{background:var(--ink);color:var(--yellow)}
 button.btn.quiet{border-color:var(--rule-2);color:var(--ink-2)}
 :focus-visible{outline:2px solid var(--ink);outline-offset:2px}
@@ -112,12 +114,30 @@ th .x:hover{color:var(--yellow)}
 th.latest{color:var(--yellow)}
 #fc td.proj{color:var(--ink-3)}
 #fc tr.cur td{background:#FFFDE0}
-#fc tr.ret td{box-shadow:inset 0 -2px 0 var(--yellow-d)}
+#fc tr.ret td{box-shadow:inset 0 -2px 0 var(--yellow-d);background:var(--yellow)}
+#fc tr.ret td.proj{color:var(--ink)}
 #fc tr.ret td:first-child{font-weight:700}
 #rt td:first-child,#rt th:first-child{position:static}
 #rt tr.sum td{font-weight:650;border-top:1px solid var(--ink)}
 #rt tr.net td{font-weight:700;background:var(--yellow);border-top:1px solid var(--ink);border-bottom:1px solid var(--ink)}
 .note{font-size:12px;color:var(--ink-2);margin:10px 0 0}
+table.plain th:first-child,table.plain td:first-child{position:static;border-right:0}
+table.plain th:not(:last-child),table.plain td:not(:last-child){text-align:left}
+table.plain.num th:not(:first-child),table.plain.num td:not(:first-child){text-align:right}
+.muted{color:var(--ink-2)}
+tr.cat td{background:#F8F3E9;font-weight:600;cursor:pointer;border-bottom:1px solid var(--rule-2)}
+tr.cat td.muted{font-weight:400}
+tr.cat:hover td{background:#F3ECDD}
+button.tw{font:600 13px var(--sans);background:none;border:0;padding:0;cursor:pointer;color:var(--ink)}
+tr.tx td{font-size:12.5px}
+tr.tx td.d{padding-left:28px;white-space:normal}
+tr.tx .n{display:block;color:var(--ink-3);font-size:11px}
+.src{font:600 10px var(--sans);letter-spacing:.04em;border-radius:2px;padding:2px 6px;border:1px solid var(--ink);text-transform:uppercase}
+.s-visa{background:var(--ink);color:var(--paper)}.s-savings{background:var(--yellow)}.s-chequing{background:#fff}
+select.cat,select.mon{font:12.5px var(--sans);padding:4px 6px;border:1px solid var(--rule-2);border-radius:2px;background:#fff;color:var(--ink);max-width:230px}
+select.mon{font-size:14px;padding:5px 8px}
+.notice{background:#FFFDE0;border:1px solid var(--yellow-d);border-radius:2px;padding:8px 12px;font-size:13px}
+.chart text.lab{fill:var(--ink-2);font-size:12px}.chart text.val{fill:var(--ink);font-size:12px;font-weight:600}
 .seg{display:inline-flex;border:1px solid var(--ink);border-radius:2px;overflow:hidden}
 .seg button{font:500 12px var(--sans);border:0;background:transparent;padding:5px 10px;cursor:pointer;color:var(--ink)}
 .seg button[aria-pressed="true"]{background:var(--ink);color:var(--paper)}
@@ -133,6 +153,7 @@ th.latest{color:var(--yellow)}
     <button role="tab" data-tab="overview" aria-selected="true"><span>Overview</span></button>
     <button role="tab" data-tab="networth" aria-selected="false"><span>Net Worth</span></button>
     <button role="tab" data-tab="forecast" aria-selected="false"><span>Forecast</span></button>
+    <button role="tab" data-tab="budget" aria-selected="false"><span>Budget</span></button>
   </nav>
   <div class="tools">
     <button class="btn" id="bk-save" title="Download a copy of all entries as a file on this computer">Save backup</button>
@@ -210,7 +231,9 @@ th.latest{color:var(--yellow)}
       <h2>Scenario</h2>
       <p class="sub">Change a value to re-run the forecast and retirement income below.</p>
       <div class="fields">
-        <label class="field">Rate of return<span class="inp"><input type="number" step="0.1" data-set="rate" data-scale="100"><em>%</em></span></label>
+        <label class="field">Retirement age<span class="inp"><input type="number" step="1" data-set="retireAge"></span></label>
+        <label class="field">Rate of return until retirement<span class="inp"><input type="number" step="0.1" data-set="rate" data-scale="100"><em>%</em></span></label>
+        <label class="field">Rate of return in retirement<span class="inp"><input type="number" step="0.1" data-set="postRate" data-scale="100"><em>%</em></span></label>
         <label class="field">Monthly contribution<span class="inp"><em class="pre">$</em><input type="number" step="100" data-set="contrib"></span></label>
         <label class="field">Annual lump sum<span class="inp"><em class="pre">$</em><input type="number" step="1000" data-set="lump"></span></label>
         <label class="field">Withdrawal rate in retirement<span class="inp"><input type="number" step="0.1" data-set="withdrawRate" data-scale="100"><em>%</em></span></label>
@@ -220,16 +243,11 @@ th.latest{color:var(--yellow)}
       <details>
         <summary>More assumptions carried over from the workbook</summary>
         <div class="fields">
-          <label class="field">Return after 2036<span class="inp"><input type="number" step="0.1" data-set="postRate" data-scale="100"><em>%</em></span></label>
           <label class="field">Deferred stock vesting 2026 (gross)<span class="inp"><em class="pre">$</em><input type="number" step="1000" data-set="vest.2026"></span></label>
           <label class="field">Deferred stock vesting 2027 (gross)<span class="inp"><em class="pre">$</em><input type="number" step="1000" data-set="vest.2027"></span></label>
           <label class="field">Deferred stock vesting 2028 (gross)<span class="inp"><em class="pre">$</em><input type="number" step="1000" data-set="vest.2028"></span></label>
           <label class="field">Real estate growth, per year<span class="inp"><input type="number" step="0.1" data-set="reGrowth" data-scale="100"><em>%</em></span></label>
           <label class="field">Mortgage paydown, per year<span class="inp"><input type="number" step="0.1" data-set="rePaydown" data-scale="100"><em>%</em></span></label>
-          <label class="field">Annual draw 2037–2056 (cash + inv.)<span class="inp"><em class="pre">$</em><input type="number" step="1000" data-set="dDraw1"></span></label>
-          <label class="field">Annual draw from 2057 (cash + inv.)<span class="inp"><em class="pre">$</em><input type="number" step="1000" data-set="dDraw2"></span></label>
-          <label class="field">Annual draw 2037–2055 (incl. deferred)<span class="inp"><em class="pre">$</em><input type="number" step="1000" data-set="eDrawHigh"></span></label>
-          <label class="field">Annual draw from 2056 (incl. deferred)<span class="inp"><em class="pre">$</em><input type="number" step="1000" data-set="eDrawLow"></span></label>
         </div>
       </details>
       <div class="bar" style="margin:14px 0 0"><button class="btn quiet" id="reset-scn">Reset scenario to defaults</button></div>
@@ -238,16 +256,56 @@ th.latest{color:var(--yellow)}
     <div class="kpis" id="rt-kpis"></div>
     <div class="card">
       <h2>Retirement income</h2>
-      <p class="sub">Income in the first year of retirement, split evenly between two people and taxed with 2026 federal and Ontario brackets.</p>
+      <p class="sub" id="rt-sub"></p>
       <div class="scroll" style="max-height:none"><table id="rt"></table></div>
       <p class="note" id="rt-note"></p>
     </div>
 
     <div class="card">
       <h2>Annual forecast</h2>
-      <p class="sub">Black figures come from the monthly balances. Grey figures are projected. Retirement years are underlined.</p>
-      <div class="bar"><span class="seg" id="horizon"><button data-h="2036" aria-pressed="true">To 2036</button><button data-h="2081" aria-pressed="false">To age 100</button></span></div>
+      <p class="sub">Black figures come from the monthly balances. Grey figures are projected. The retirement year is highlighted. Withdrawals are taken from the balance including deferred.</p>
+      <div class="bar"><span class="seg" id="horizon"><button data-h="near" aria-pressed="true" id="h-near"></button><button data-h="all" aria-pressed="false">To age 100</button></span></div>
       <div class="scroll"><table id="fc"></table></div>
+      <p class="note" id="fc-note"></p>
+    </div>
+  </section>
+  <!-- ============ BUDGET ============ -->
+  <section class="tab" id="tab-budget" hidden>
+    <div class="card">
+      <h2>Monthly expenses</h2>
+      <p class="sub">Transactions from Savings, Chequing and VISA, sorted into common groupings. Transfers between your own accounts and card payments are shown separately and not counted as income or spending.</p>
+      <div class="bar" style="margin-bottom:6px">
+        <select id="bd-month" class="mon" aria-label="Month"></select>
+        <label class="btn primary">Load transactions folder<input type="file" id="bd-dir" webkitdirectory multiple hidden></label>
+        <label class="btn quiet">Pick files<input type="file" id="bd-files" accept=".csv,text/csv" multiple hidden></label>
+        <button class="btn quiet" id="bd-clear">Clear transactions</button>
+      </div>
+      <div class="hint" id="bd-status" style="max-width:none"></div>
+    </div>
+    <div class="card" id="bd-empty">
+      <h2>No transactions loaded yet</h2>
+      <p class="sub" style="margin-bottom:0">Choose “Load transactions folder” and select Financial/Budget/Transactions. The browser will ask whether to “upload” the files: they are only read into this page on this computer and are not sent anywhere. Load the folder again each month after adding new files; transactions already loaded are not duplicated.</p>
+    </div>
+    <div id="bd-body" style="display:flex;flex-direction:column;gap:18px">
+      <div class="kpis" id="bd-kpis"></div>
+      <div class="grid2">
+        <div class="card">
+          <h2>Allocation across groupings</h2>
+          <p class="sub">Spending by grouping, CAD, largest first. Refunds are netted off.</p>
+          <div class="legend" id="lg-alloc"></div><div class="chart" id="ch-alloc"></div>
+        </div>
+        <div class="card">
+          <h2>Inflows and outflows</h2>
+          <p class="sub">Income against fixed and variable spending, CAD.</p>
+          <div class="chart" id="ch-flow"></div>
+          <div class="scroll" style="max-height:none;margin-top:14px"><table id="bd-src" class="plain num"></table></div>
+        </div>
+      </div>
+      <div class="notice" id="bd-note" role="status" hidden></div>
+      <div class="card"><h2>Income</h2><p class="sub">Select a grouping to see its transactions.</p><div class="scroll" style="max-height:none"><table id="bd-income" class="plain"></table></div></div>
+      <div class="card"><h2>Fixed expenses</h2><p class="sub">Select a grouping to see its transactions. Changing a transaction's grouping moves every transaction with the same label.</p><div class="scroll" style="max-height:none"><table id="bd-fixed" class="plain"></table></div></div>
+      <div class="card"><h2>Variable expenses</h2><p class="sub">Select a grouping to see its transactions. Changing a transaction's grouping moves every transaction with the same label.</p><div class="scroll" style="max-height:none"><table id="bd-variable" class="plain"></table></div></div>
+      <div class="card"><h2>Transfers, not counted</h2><p class="sub">Card payments and movements between your own accounts. Positive is money into the account, negative is money out.</p><div class="scroll" style="max-height:none"><table id="bd-transfer" class="plain"></table></div></div>
     </div>
   </section>
 </main>
@@ -258,13 +316,12 @@ th.latest{color:var(--yellow)}
 <script id="engine">
 /* Calculation engine: no DOM access, so it can be tested on its own. */
 const Engine = (() => {
-  const BASE_YEAR = 2023, END_YEAR = 2081, BIRTH_YEAR = 1981, RETIRE_LAST_WORK_YEAR = 2036;
-  const RETIRE_YEARS = [2033, 2036];
+  const BASE_YEAR = 2023, END_YEAR = 2081, BIRTH_YEAR = 1981;
   const DEFAULTS = {
     fx: 1.42464998, fxDate: null, fxSource: 'workbook', taxRate: 0.5353,
-    rate: 0.05, contrib: 3000, lump: 200000, postRate: 0.025, withdrawRate: 0.05,
+    retireAge: 55, rate: 0.05, contrib: 3000, lump: 200000, postRate: 0.025, withdrawRate: 0.05,
     cppMonthly: 1600, pension: 60000, vest: { 2026: 942691, 2027: 748000, 2028: 600350 },
-    reGrowth: 0.015, rePaydown: 0.01, dDraw1: 200000, dDraw2: 125000, eDrawHigh: 400000, eDrawLow: 200000,
+    reGrowth: 0.015, rePaydown: 0.01,
   };
   // 2026 tax year. Sources: canada.ca rates, taxtips.ca/taxrates/on.htm (checked 2026-10-03).
   const TAX = {
@@ -315,16 +372,21 @@ const Engine = (() => {
     t.net = t.assets - t.liab;
     return t;
   }
+  const retireYear = st => BIRTH_YEAR + st.settings.retireAge;
+  // Working years (up to and including the retirement year): balance grows at the rate of return, then the
+  // year's contributions and lump sum are added. Retirement years: the withdrawal (withdrawal rate x the
+  // previous year-end balance) comes out first, then the remainder grows at the retirement rate of return.
   function forecast(st) {
-    const s = st.settings, lastIdx = {};
+    const s = st.settings, lastIdx = {}, retYear = retireYear(st);
     st.months.forEach((m, i) => { lastIdx[+m.slice(0, 4)] = i; });
     const cy = +st.months[st.months.length - 1].slice(0, 4);
+    const saved = 12 * s.contrib, drawdown = b => b * (1 - s.withdrawRate) * (1 + s.postRate);
     const rows = []; let C, D, E, F, G;
     for (let y = BASE_YEAR; y <= END_YEAR; y++) {
-      const r = { year: y, age: y - BIRTH_YEAR, C: null, D: null, E: null, F: null, G: null, H: null,
-                  I: st.baselineNW[y - BASE_YEAR] ?? null, J: null, actual: false, current: y === cy };
-      C = y === BASE_YEAR ? st.baseInv
-        : C * (1 + (y <= RETIRE_LAST_WORK_YEAR ? s.rate : s.postRate)) + 12 * s.contrib + s.lump;
+      const working = y <= retYear;
+      const r = { year: y, age: y - BIRTH_YEAR, C: null, D: null, E: null, W: null, F: null, G: null, H: null,
+                  I: st.baselineNW[y - BASE_YEAR] ?? null, J: null, actual: false, current: y === cy, retire: y === retYear };
+      C = y === BASE_YEAR ? st.baseInv : working ? C * (1 + s.rate) + saved + s.lump : drawdown(C);
       r.C = C;
       if (y <= cy) {
         if (lastIdx[y] != null) {
@@ -336,12 +398,12 @@ const Engine = (() => {
           r.J = t.cash + t.inv + t.fixed - t.liab;
         }
       } else {
-        if (y <= RETIRE_LAST_WORK_YEAR) {
-          D = D * (1 + s.rate) + s.lump;
-          E = E * (1 + s.rate) + (s.vest[y] != null ? s.vest[y] * (1 - s.taxRate) : s.lump);
+        if (working) {
+          D = D * (1 + s.rate) + saved + s.lump;
+          E = E * (1 + s.rate) + saved + (s.vest[y] != null ? s.vest[y] * (1 - s.taxRate) : s.lump);
         } else {
-          D = D * (1 + s.postRate) - (y <= 2056 ? s.dDraw1 : s.dDraw2);
-          E = E * (1 + s.postRate) - (y <= 2055 ? s.eDrawHigh : s.eDrawLow);
+          r.W = E * s.withdrawRate;
+          D = drawdown(D); E = drawdown(E);
         }
         F = F * (1 + s.reGrowth);
         G = y >= 2038 ? 0 : G * (1 - s.rePaydown);
@@ -352,17 +414,138 @@ const Engine = (() => {
     return rows;
   }
   function retirement(st, fc) {
-    const s = st.settings;
-    return RETIRE_YEARS.map(y => {
-      const row = fc.find(r => r.year === y);
-      const portfolio = (row.E || 0) * s.withdrawRate, cpp = s.cppMonthly * 12, pension = s.pension;
-      const gross = portfolio + cpp + pension, perPerson = gross / 2;
-      const tx = personTax(perPerson), tax = tx.total * 2;
-      return { year: y, age: row.age, balance: row.E, portfolio, cpp, pension, gross, perPerson,
-               fedTax: tx.fed * 2, onTax: tx.on * 2, tax, net: gross - tax, effRate: gross ? tax / gross : 0 };
-    });
+    const s = st.settings, row = fc.find(r => r.retire);
+    const portfolio = (row.E || 0) * s.withdrawRate, cpp = s.cppMonthly * 12, pension = s.pension;
+    const gross = portfolio + cpp + pension, perPerson = gross / 2;
+    const tx = personTax(perPerson), tax = tx.total * 2;
+    return { year: row.year, age: row.age, balance: row.E, portfolio, cpp, pension, gross, perPerson,
+             fedTax: tx.fed * 2, onTax: tx.on * 2, tax, net: gross - tax, effRate: gross ? tax / gross : 0 };
   }
-  return { DEFAULTS, TAX, RETIRE_YEARS, cellCad, totals, forecast, retirement, personTax };
+  /* ----- budget: groupings shared by every transaction source ----- */
+  const CATS = [
+    ['salary', 'Salary', 'income'], ['rental', 'Rental income', 'income'], ['interest', 'Interest', 'income'], ['other_income', 'Other income', 'income'],
+    ['housing', 'Mortgage & housing', 'fixed'], ['utilities', 'Utilities', 'fixed'], ['insurance', 'Insurance', 'fixed'],
+    ['phone', 'Phone & internet', 'fixed'], ['subscriptions', 'Subscriptions', 'fixed'], ['fitness', 'Fitness & memberships', 'fixed'],
+    ['donations', 'Donations', 'fixed'], ['loans', 'Loan payments', 'fixed'],
+    ['groceries', 'Groceries', 'variable'], ['dining', 'Dining, coffee & delivery', 'variable'],
+    ['transport', 'Transport, parking & fuel', 'variable'], ['travel', 'Travel', 'variable'], ['shopping', 'Shopping', 'variable'],
+    ['health', 'Health & pharmacy', 'variable'], ['entertainment', 'Entertainment', 'variable'], ['services', 'Household services', 'variable'],
+    ['cash', 'Cash withdrawals', 'variable'], ['fees', 'Fees & taxes', 'variable'], ['uncategorized', 'Uncategorized', 'variable'],
+    ['transfer', 'Transfers & card payments', 'transfer'], ['savings_tx', 'Transfers to savings', 'transfer'],
+  ].map(([id, name, tier]) => ({ id, name, tier }));
+  const CAT = Object.fromEntries(CATS.map(c => [c.id, c]));
+  // First match wins. These are starting guesses; a reassignment in the page always takes priority.
+  const RULES = [
+    [/PAYROLL|SALARY|DIRECT DEPOSIT/, 'salary'],
+    [/DEPOSIT INTEREST|INTEREST PAID/, 'interest'],
+    [/FIND & SAVE/, 'savings_tx'],
+    [/PAYMENT - THANK YOU|PAIEMENT - MERCI|ONLINE BANKING TRANSFER|ONLINE TRANSFER|TRANSFER (TO|FROM)/, 'transfer'],
+    [/MORTGAGE|\bRENT\b|PROPERTY TAX|CONDOMINIUM|CONDO FEE/, 'housing'],
+    [/\bLOAN\b/, 'loans'],
+    [/ATM WITHDRAWAL|CASH WITHDRAWAL/, 'cash'],
+    [/ENBRIDGE|HYDRO|UTILITY BILL|RELIANCE|WATER BILL/, 'utilities'],
+    [/INSURANCE|AVIVA|BALANCEPROTECTOR/, 'insurance'],
+    [/BELL MOBILITY|BELL CANADA|ROGERS|TELUS|\bFIDO\b|KOODO/, 'phone'],
+    [/APPLE\.COM\/BILL|SPOTIFY|QOBUZ|NETFLIX|ANTHROPIC|NORDVPN|SL\.NORD|PRIME MEMBER|NOOM|SUBSCRIP|DISNEY PLUS|OPENAI/, 'subscriptions'],
+    [/\bGYM\b|FITNESS|YOGA|PILATES/, 'fitness'],
+    [/GREENPEACE|HOSPITAL FO|DONAT|FOUNDATION|CHARIT|UNICEF/, 'donations'],
+    [/AIR CAN|AIRCANADA|WESTJET|HOTEL|AIRBNB|EXPEDIA|SAILY|VIA RAIL/, 'travel'],
+    [/UBER ?EATS/, 'dining'],
+    [/UBER|LYFT|IMPARK|PARKING|PRESTO|\bTTC\b|PETRO|\bESSO\b|\bSHELL\b|SUNOCO|CIRCLE K|BRIDGE COMMISSION|407 ?ETR|AIR-SERV/, 'transport'],
+    [/PHARMA|DENT|ENDODON|ORTHODON|MEDICAL|CLINIC|SHOPPERS DRUG|WELL\.CA|PHYSIO|OPTOM/, 'health'],
+    [/TICKETMASTER|CINEPLEX|THEATRE|THOMSONHALL|MASSEY/, 'entertainment'],
+    [/CLEANERS|CLEANING|SERVICEWORKS|LAUNDRY/, 'services'],
+    [/PROVINCIAL TAX|ANNUAL FEE|MONTHLY FEE|OVERDRAFT|MULTIPRODUCT REBATE|INTEREST CHARGE|SERVICE FEE|\bNSF\b/, 'fees'],
+    [/INSTACART|LOBLAWS|WHOLEFDS|WHOLE FOODS|SOBEYS|NO FRILLS|FARM BOY|COSTCO|MARKET|GROCER/, 'groceries'],
+    [/STARBUCKS|COFFEE|CAFE|ESPRESSO|DOORDASH|RESTAURANT|PIZZA|BURGER|SUSHI|KITCHEN|^TST|^SQ \*|\bBAR\b|\bPUB\b|TAVERNA|\bDELI\b|FORNO|VENDING|FOODS\b|FRESCO|TIM HORTONS|MCDONALD/, 'dining'],
+    [/AMZN|AMAZON|\bREI\b|^SP |IKEA|WALMART|CANADIAN TIRE|BEST BUY/, 'shopping'],
+  ];
+  // The label used to treat transactions as "the same merchant": store numbers and reference codes removed.
+  function merchantKey(desc) {
+    let words = desc.toUpperCase().split(/\s+/);
+    if (/^E-TRANSFER/.test(words[0]) && words.length > 3) words = words.slice(0, -1);
+    const k = words.map(tok => {
+      const i = tok.indexOf('*');
+      if (i >= 0 && /\d/.test(tok.slice(i + 1))) tok = tok.slice(0, i + 1);
+      return tok.replace(/#?\d.*$/, '');
+    }).filter(x => x && x !== '-').join(' ').trim();
+    return k || desc.toUpperCase().trim();
+  }
+  // Standing assignments for specific payees. Stored as a fingerprint of the label so no names sit in this file.
+  const PINNED = { "1qan4yc": 'rental' };
+  function fingerprint(s) { let h = 0x811c9dc5; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 0x01000193); } return (h >>> 0).toString(36); }
+  function categorize(tx, overrides) {
+    const key = merchantKey(tx.t), o = overrides && overrides[key];
+    if (o && CAT[o]) return o;
+    const pin = PINNED[fingerprint(key)];
+    if (pin) return pin;
+    const text = tx.t.toUpperCase();
+    for (const [re, id] of RULES) if (re.test(text)) return id;
+    return tx.a > 0 && tx.s !== 'VISA' ? 'other_income' : 'uncategorized';
+  }
+  function csvRows(text) {
+    const rows = []; let row = [], f = '', q = false;
+    text = text.replace(/^﻿/, '');
+    for (let i = 0; i < text.length; i++) {
+      const c = text[i];
+      if (q) { if (c === '"') { if (text[i + 1] === '"') { f += '"'; i++; } else q = false; } else f += c; }
+      else if (c === '"') q = true;
+      else if (c === ',') { row.push(f); f = ''; }
+      else if (c === '\n' || c === '\r') { if (c === '\r' && text[i + 1] === '\n') i++; row.push(f); f = ''; if (row.some(x => x !== '')) rows.push(row); row = []; }
+      else f += c;
+    }
+    row.push(f); if (row.some(x => x !== '')) rows.push(row);
+    return rows;
+  }
+  // Reads a bank export. Account numbers are deliberately not kept. Returns null if the columns are not recognised.
+  function parseTransactions(text, fx) {
+    const rows = csvRows(text); if (!rows.length) return null;
+    const h = rows[0].map(x => x.trim()), ix = n => h.indexOf(n);
+    const iT = ix('Account Type'), iD = ix('Transaction Date'), i1 = ix('Description 1'), i2 = ix('Description 2'), iC = ix('CAD$'), iU = ix('USD$');
+    if (iT < 0 || iD < 0 || i1 < 0 || iC < 0) return null;
+    const tx = []; let skipped = 0;
+    for (const r of rows.slice(1)) {
+      const type = (r[iT] || '').trim(), raw = (r[iD] || '').trim();
+      let m = raw.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/), d = null;
+      if (m) d = `${m[3]}-${m[1].padStart(2, '0')}-${m[2].padStart(2, '0')}`;
+      else if (/^\d{4}-\d{2}-\d{2}/.test(raw)) d = raw.slice(0, 10);
+      const cad = (r[iC] || '').trim(), usd = iU >= 0 ? (r[iU] || '').trim() : '';
+      let a = cad !== '' ? Number(cad) : usd !== '' ? Number(usd) * fx : NaN, n = i2 >= 0 ? (r[i2] || '').trim() : '';
+      if (cad === '' && usd !== '') n = `US$${usd} converted at ${fx}`;
+      if (!d || !isFinite(a)) { skipped++; continue; }
+      const s = /visa/i.test(type) ? 'VISA' : /sav/i.test(type) ? 'Savings' : /che|chq/i.test(type) ? 'Chequing' : (type || 'Other');
+      tx.push({ s, d, t: (r[i1] || '').trim().replace(/\s+/g, ' '), n, a: Math.round(a * 100) / 100 });
+    }
+    return { tx, skipped };
+  }
+  // Combines what is already loaded with newly read files. A transaction that appears in overlapping files is
+  // kept once; genuine repeats inside one file (two identical rides on one day) are all kept.
+  function mergeTx(existing, batches) {
+    const best = new Map();
+    for (const list of [existing, ...batches]) {
+      const c = new Map();
+      for (const x of list) { const k = [x.s, x.d, x.t, x.a].join('|'); const e = c.get(k) || { x, n: 0 }; e.n++; c.set(k, e); }
+      for (const [k, e] of c) { const b = best.get(k); if (!b || e.n > b.n) best.set(k, e); }
+    }
+    const out = [];
+    for (const e of best.values()) for (let i = 0; i < e.n; i++) out.push({ ...e.x });
+    return out.sort((a, b) => a.d < b.d ? -1 : a.d > b.d ? 1 : a.s < b.s ? -1 : a.s > b.s ? 1 : 0);
+  }
+  // Income and transfers keep the bank's sign; spending is shown positive, so a refund reduces its grouping.
+  function summarize(tx, overrides, month) {
+    const cats = {}; CATS.forEach(c => { cats[c.id] = { ...c, total: 0, count: 0, items: [] }; });
+    const tot = { income: 0, fixed: 0, variable: 0, transfer: 0 }, src = {};
+    tx.forEach((x, i) => {
+      if (month && x.d.slice(0, 7) !== month) return;
+      const c = cats[categorize(x, overrides)], spend = c.tier === 'fixed' || c.tier === 'variable', v = spend ? -x.a : x.a;
+      c.total += v; c.count++; c.items.push(i); tot[c.tier] += v;
+      const s = src[x.s] || (src[x.s] = { income: 0, expenses: 0, transfer: 0, count: 0 });
+      s.count++; s[spend ? 'expenses' : c.tier] += v;
+    });
+    return { cats, tot, src, expenses: tot.fixed + tot.variable, net: tot.income - tot.fixed - tot.variable };
+  }
+  const Budget = { CATS, CAT, merchantKey, fingerprint, categorize, parseTransactions, mergeTx, summarize };
+  return { DEFAULTS, TAX, BIRTH_YEAR, END_YEAR, retireYear, cellCad, totals, forecast, retirement, personTax, Budget };
 })();
 if (typeof module !== 'undefined') module.exports = Engine;
 </script>
@@ -377,11 +560,12 @@ const clone = o => JSON.parse(JSON.stringify(o));
 const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
 /* ---------- state ---------- */
-function fresh() { const s = clone(SEED); s.settings = clone(Engine.DEFAULTS); return s; }
+const withBudget = s => { s.budget = Object.assign({ tx: [], overrides: {}, files: [] }, s.budget); return s; };
+function fresh() { const s = clone(SEED); s.settings = clone(Engine.DEFAULTS); return withBudget(s); }
 function load() {
   try {
     const raw = localStorage.getItem(KEY);
-    if (raw) { const s = JSON.parse(raw); if (s && s.months && s.values) { s.settings = Object.assign(clone(Engine.DEFAULTS), s.settings); return s; } }
+    if (raw) { const s = JSON.parse(raw); if (s && s.months && s.values) { s.settings = Object.assign(clone(Engine.DEFAULTS), s.settings); return withBudget(s); } }
   } catch (e) {}
   return fresh();
 }
@@ -512,7 +696,7 @@ function renderOverview() {
     kpi('Net worth, excl. deferred', money(cur.J), cur.I != null ? vs(cur.J, cur.I) : '') +
     kpi('Real estate net equity', money(cur.H), `${compact(cur.F)} value less ${compact(cur.G)} mortgages`);
   $('asof').textContent = `Latest entry ${monthLabel(state.months[last])} · USD→CAD ${state.settings.fx.toFixed(4)} · all figures CAD`;
-  const rows = fc.filter(r => r.year <= 2036), cats = rows.map(r => String(r.year));
+  const rows = fc.filter(r => r.year <= Math.max(Engine.retireYear(state), yr + 1)), cats = rows.map(r => String(r.year));
   const pf = rows.findIndex(r => r.year > yr), col = k => rows.map(r => r[k]);
   let s = [{ name: 'Original forecast', color: GREY, values: col('I') }, { name: 'Actual net worth', color: INK, values: col('J') }];
   legend($('lg-nw'), s); colChart($('ch-nw'), { cats, series: s, label: 'Net worth, original forecast versus actual, by year' });
@@ -585,26 +769,144 @@ function renderNetWorth() {
 }
 
 /* ---------- forecast ---------- */
-let horizon = 2036;
+let horizon = 'near';
 function renderForecast() {
-  const { fc, ret } = D, s = state.settings;
-  $('rt-kpis').innerHTML = ret.map(r =>
-    kpi(`Retire ${r.year}, age ${r.age}: net monthly income`, money(r.net / 12), `${money(r.gross / 12)} gross · ${pct(r.effRate)} effective tax`, true) +
-    kpi(`Portfolio at ${r.year}, incl. deferred`, money(r.balance), `${pct(s.withdrawRate, 1)} withdrawal = ${money(r.portfolio)} a year`)).join('');
-  const line = (label, f, cls = '') => `<tr class="${cls}"><td>${label}</td>` + ret.map(r => `<td>${money(f(r) / 12)}</td><td>${money(f(r))}</td>`).join('') + '</tr>';
-  $('rt').innerHTML = '<thead><tr><th>Source</th>' + ret.map(r => `<th>${r.year} monthly</th><th>${r.year} annual</th>`).join('') + '</tr></thead><tbody>' +
-    line(`Portfolio withdrawals (${pct(s.withdrawRate, 1)} of balance)`, r => r.portfolio) + line('CPP', r => r.cpp) + line('Defined benefit pension', r => r.pension) +
-    line('Total gross income', r => r.gross, 'sum') + line('Federal tax', r => -r.fedTax) + line('Ontario tax, incl. surtax and health premium', r => -r.onTax) +
-    line('Net income', r => r.net, 'net') +
-    '<tr><td>Effective tax rate</td>' + ret.map(r => `<td></td><td>${pct(r.effRate)}</td>`).join('') + '</tr></tbody>';
-  $('rt-note').textContent = `Each person is taxed on half the household income (${ret.map(r => money(r.perPerson) + ' in ' + r.year).join(', ')}). Uses ${Engine.TAX.year} brackets and the basic personal amount only; all income is treated as ordinary income, and CPP and the pension are assumed to be in payment in the retirement year, as in the workbook.`;
-  const cols = [['C', 'Original inv. forecast'], ['D', 'Actual cash + investments'], ['E', 'Incl. deferred'], ['F', 'Real estate value'], ['G', 'Real estate liabilities'], ['H', 'Real estate net equity'], ['I', 'Original forecast net worth'], ['J', 'Actual net worth']];
+  const { fc, ret: r } = D, s = state.settings, retYear = Engine.retireYear(state);
+  const at90 = fc.find(x => x.age === 90);
+  $('rt-kpis').innerHTML =
+    kpi(`Net monthly income, retiring at ${r.age} in ${r.year}`, money(r.net / 12), `${money(r.net)} a year after tax`, true) +
+    kpi('Gross monthly income', money(r.gross / 12), `${pct(r.effRate)} effective tax`) +
+    kpi(`Portfolio at retirement, incl. deferred`, money(r.balance), `${pct(s.withdrawRate, 1)} withdrawal = ${money(r.portfolio)} in the first year`) +
+    kpi('Portfolio at age 90', money(at90.E), `after withdrawals, growing at ${pct(s.postRate, 1)}`);
+  $('rt-sub').textContent = `Income in the first year after retiring at ${r.age} (end of ${r.year}), split evenly between two people and taxed with ${Engine.TAX.year} federal and Ontario brackets.`;
+  const line = (label, f, cls = '') => `<tr class="${cls}"><td>${label}</td><td>${money(f(r) / 12)}</td><td>${money(f(r))}</td></tr>`;
+  $('rt').innerHTML = '<thead><tr><th>Source</th><th>Monthly</th><th>Annual</th></tr></thead><tbody>' +
+    line(`Portfolio withdrawals (${pct(s.withdrawRate, 1)} of ${money(r.balance)})`, x => x.portfolio) + line('CPP', x => x.cpp) + line('Defined benefit pension', x => x.pension) +
+    line('Total gross income', x => x.gross, 'sum') + line('Federal tax', x => -x.fedTax) + line('Ontario tax, incl. surtax and health premium', x => -x.onTax) +
+    line('Net income', x => x.net, 'net') +
+    `<tr><td>Effective tax rate</td><td></td><td>${pct(r.effRate)}</td></tr></tbody>`;
+  $('rt-note').textContent = `Each person is taxed on half the household income (${money(r.perPerson)}). Uses ${Engine.TAX.year} brackets and the basic personal amount only; all income is treated as ordinary income, and CPP and the pension are assumed to be in payment from the first year of retirement, as in the workbook.`;
+  const cols = [['C', 'Original inv. forecast'], ['D', 'Actual cash + investments'], ['E', 'Incl. deferred'], ['W', 'Withdrawal'], ['F', 'Real estate value'], ['G', 'Real estate liabilities'], ['H', 'Real estate net equity'], ['I', 'Original fcst net worth'], ['J', 'Actual net worth']];
+  const end = horizon === 'near' ? Math.min(Engine.END_YEAR, retYear + 10) : Engine.END_YEAR;
+  $('h-near').textContent = `To ${end === Engine.END_YEAR && horizon === 'near' ? 'age 100' : Math.min(Engine.END_YEAR, retYear + 10)}`;
   $('fc').innerHTML = '<thead><tr><th>Year</th><th>Age</th>' + cols.map(c => `<th>${c[1]}</th>`).join('') + '</tr></thead><tbody>' +
-    fc.filter(r => r.year <= horizon).map(r => {
-      const cls = [r.current ? 'cur' : '', Engine.RETIRE_YEARS.includes(r.year) ? 'ret' : ''].join(' ');
-      return `<tr class="${cls}"><td>${r.year}${r.current ? ' · latest' : ''}</td><td>${r.age}</td>` + cols.map(([k]) => `<td class="${'CI'.includes(k) || !r.actual ? 'proj' : ''}">${money(r[k])}</td>`).join('') + '</tr>';
+    fc.filter(x => x.year <= end).map(x => {
+      const cls = [x.current ? 'cur' : '', x.retire ? 'ret' : ''].join(' ');
+      return `<tr class="${cls}"><td>${x.year}${x.current ? ' · latest' : ''}${x.retire ? ' · retire' : ''}</td><td>${x.age}</td>` + cols.map(([k]) => `<td class="${'CIW'.includes(k) || !x.actual ? 'proj' : ''}">${money(x[k])}</td>`).join('') + '</tr>';
     }).join('') + '</tbody>';
+  $('fc-note').textContent = `Up to and including ${retYear}, each projected balance is last year's balance grown at ${pct(s.rate, 1)}, plus ${money(12 * s.contrib)} of monthly contributions and the ${money(s.lump)} lump sum (or that year's vesting, for the column including deferred). From ${retYear + 1}, ${pct(s.withdrawRate, 1)} of last year's balance is withdrawn first and the remainder grows at ${pct(s.postRate, 1)}; contributions and lump sums stop.`;
 }
+
+/* ---------- budget ---------- */
+const B = Engine.Budget;
+let bMonth = null, bNote = ''; const bOpen = new Set();
+const money2 = n => (n < -0.004 ? '−$' : '$') + Math.abs(n).toLocaleString('en-CA', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const dayLabel = d => new Date(+d.slice(0, 4), +d.slice(5, 7) - 1, +d.slice(8)).toLocaleString('en-CA', { day: 'numeric', month: 'short', year: 'numeric' });
+const TIER_NAME = { income: 'Income', fixed: 'Fixed expenses', variable: 'Variable expenses', transfer: 'Transfers, not counted' };
+const CAT_OPTIONS = ['income', 'fixed', 'variable', 'transfer'].map(tier => `<optgroup label="${TIER_NAME[tier]}">` + B.CATS.filter(c => c.tier === tier).map(c => `<option value="${c.id}">${esc(c.name)}</option>`).join('') + '</optgroup>').join('');
+// Horizontal bars. items: {name, value, color, outline, tip}
+function hbar(el, items, label) {
+  const W = el.clientWidth; if (!W) return;
+  const rowH = 28, lw = Math.min(190, W * 0.4), vw = 86, H = items.length * rowH + 8, bh = 16;
+  const max = Math.max(1, ...items.map(i => Math.abs(i.value))), span = Math.max(20, W - lw - vw);
+  let s = '';
+  items.forEach((it, k) => {
+    const y = 4 + k * rowH, w = Math.max(2, Math.abs(it.value) / max * span), by = y + (rowH - bh) / 2, r = Math.min(4, w / 2), x1 = lw + w;
+    s += `<rect class="bgb" data-i="${k}" x="0" y="${y}" width="${W}" height="${rowH}"/><text class="lab" x="${lw - 10}" y="${y + rowH / 2 + 4}" text-anchor="end">${esc(it.name)}</text>` +
+      `<path d="M${lw},${by}H${x1 - r}Q${x1},${by} ${x1},${by + r}V${by + bh - r}Q${x1},${by + bh} ${x1 - r},${by + bh}H${lw}Z" fill="${it.color}"${it.outline ? ` stroke="${INK}" stroke-width="1"` : ''}/>` +
+      `<text class="val" x="${x1 + 8}" y="${y + rowH / 2 + 4}">${money(it.value)}</text><rect class="hit" tabindex="0" data-i="${k}" x="0" y="${y}" width="${W}" height="${rowH}" aria-label="${esc(it.name)} ${money(it.value)}"/>`;
+  });
+  el.innerHTML = `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(label)}"><line x1="${lw}" x2="${lw}" y1="2" y2="${H - 2}" stroke="${INK}"/>${s}</svg>`;
+  const off = () => { el.querySelectorAll('.bgb.on').forEach(b => b.classList.remove('on')); hideTip(); };
+  el.querySelectorAll('.hit').forEach(h => {
+    const i = +h.dataset.i, on = e => {
+      el.querySelectorAll('.bgb').forEach(b => b.classList.toggle('on', +b.dataset.i === i));
+      if (e.type === 'focus') { const r = e.target.getBoundingClientRect(); showTip(items[i].tip, r.left + lw, r.bottom); } else showTip(items[i].tip, e.clientX, e.clientY);
+    };
+    h.addEventListener('pointermove', on); h.addEventListener('focus', on); h.addEventListener('pointerleave', off); h.addEventListener('blur', off);
+  });
+}
+function tierTable(el, R, tier) {
+  const tx = state.budget.tx, spend = tier === 'fixed' || tier === 'variable';
+  const cats = Object.values(R.cats).filter(c => c.tier === tier && c.count).sort((a, b) => Math.abs(b.total) - Math.abs(a.total));
+  let h = '<thead><tr><th>Grouping</th><th>Date</th><th>Source</th><th>Assigned grouping</th><th>Amount</th></tr></thead><tbody>';
+  if (!cats.length) h += '<tr><td colspan="5" class="muted">Nothing here for this period.</td></tr>';
+  for (const c of cats) {
+    const open = bOpen.has(c.id);
+    h += `<tr class="cat" data-cat="${c.id}"><td><button class="tw" aria-expanded="${open}">${open ? '▾' : '▸'}&nbsp; ${esc(c.name)}</button></td><td colspan="3" class="muted">${c.count} transaction${c.count === 1 ? '' : 's'}${spend && R.expenses > 0 ? ' · ' + pct(c.total / R.expenses) + ' of spending' : ''}</td><td>${money2(c.total)}</td></tr>`;
+    if (open) for (const i of c.items) {
+      const x = tx[i];
+      h += `<tr class="tx"><td class="d">${esc(x.t)}${x.n ? `<span class="n">${esc(x.n)}</span>` : ''}</td><td>${dayLabel(x.d)}</td><td><span class="src s-${esc(x.s.toLowerCase())}">${esc(x.s)}</span></td>` +
+        `<td><select class="cat" data-tx="${i}" aria-label="Grouping for ${esc(x.t)}">${CAT_OPTIONS.replace(`value="${c.id}"`, `value="${c.id}" selected`)}</select></td><td>${money2(spend ? -x.a : x.a)}</td></tr>`;
+    }
+  }
+  el.innerHTML = h + `<tr class="sub"><td colspan="4">Total ${TIER_NAME[tier].toLowerCase().replace(', not counted', ' (net)')}</td><td>${money2(R.tot[tier])}</td></tr></tbody>`;
+}
+function renderBudget() {
+  const b = state.budget, tx = b.tx, has = tx.length > 0;
+  $('bd-empty').hidden = has; $('bd-body').hidden = !has; $('bd-month').hidden = !has; $('bd-clear').hidden = !has;
+  $('bd-note').hidden = !bNote; $('bd-note').textContent = bNote;
+  if (!has) { $('bd-status').textContent = b.status || ''; return; }
+  const mc = {}; tx.forEach(x => { const m = x.d.slice(0, 7); mc[m] = (mc[m] || 0) + 1; });
+  const months = Object.keys(mc).sort().reverse();
+  if (bMonth !== 'all' && !mc[bMonth]) bMonth = months.find(m => mc[m] >= 20) || months[0];
+  $('bd-month').innerHTML = months.map(m => `<option value="${m}"${m === bMonth ? ' selected' : ''}>${monthLabel(m)} (${mc[m]} transactions)</option>`).join('') + `<option value="all"${bMonth === 'all' ? ' selected' : ''}>All months (${tx.length} transactions)</option>`;
+  const bySrc = {}; tx.forEach(x => { bySrc[x.s] = (bySrc[x.s] || 0) + 1; });
+  $('bd-status').textContent = `${tx.length} transactions loaded, ${dayLabel(tx[0].d)} to ${dayLabel(tx[tx.length - 1].d)}: ${Object.entries(bySrc).map(([s, n]) => `${s} ${n}`).join(', ')}.` + (b.status ? ' ' + b.status : '');
+  const R = B.summarize(tx, b.overrides, bMonth === 'all' ? null : bMonth), per = bMonth === 'all' ? 'all months' : monthLabel(bMonth);
+  $('bd-kpis').innerHTML =
+    kpi(`Income, ${per}`, money2(R.tot.income), Object.values(R.cats).filter(c => c.tier === 'income' && c.count).map(c => `${esc(c.name)} ${money(c.total)}`).join(' · '), true) +
+    kpi('Fixed expenses', money2(R.tot.fixed), R.expenses > 0 ? pct(R.tot.fixed / R.expenses) + ' of spending' : '') +
+    kpi('Variable expenses', money2(R.tot.variable), R.expenses > 0 ? pct(R.tot.variable / R.expenses) + ' of spending' : '') +
+    kpi(R.net >= 0 ? 'Left over after spending' : 'Spending above income', money2(Math.abs(R.net)), R.tot.income > 0 ? `<span class="${R.net >= 0 ? 'up' : 'down'}">${pct(Math.abs(R.net) / R.tot.income)}</span> of income` : '');
+  const tipFor = c => `<b class="t">${esc(c.name)}</b>` + tipRow('', 'Total', money2(c.total)) + tipRow('', 'Share of spending', pct(c.total / R.expenses)) + tipRow('', 'Transactions', c.count) + tipRow('', 'Type', c.tier === 'fixed' ? 'Fixed' : 'Variable');
+  const alloc = Object.values(R.cats).filter(c => (c.tier === 'fixed' || c.tier === 'variable') && c.count).sort((a, b2) => b2.total - a.total)
+    .map(c => ({ name: c.name, value: c.total, color: c.tier === 'fixed' ? INK : YEL, outline: c.tier !== 'fixed', tip: tipFor(c) }));
+  legend($('lg-alloc'), [{ name: 'Fixed', color: INK }, { name: 'Variable', color: YEL, outline: true }]);
+  hbar($('ch-alloc'), alloc, 'Spending by grouping');
+  const ft = (name, v) => `<b class="t">${name}</b>` + tipRow('', per, money2(v)) + (R.tot.income > 0 ? tipRow('', 'Share of income', pct(v / R.tot.income)) : '');
+  hbar($('ch-flow'), [
+    { name: 'Income', value: R.tot.income, color: GREY, tip: ft('Income', R.tot.income) },
+    { name: 'Fixed expenses', value: R.tot.fixed, color: INK, tip: ft('Fixed expenses', R.tot.fixed) },
+    { name: 'Variable expenses', value: R.tot.variable, color: YEL, outline: true, tip: ft('Variable expenses', R.tot.variable) },
+    { name: R.net >= 0 ? 'Left over' : 'Shortfall', value: R.net, color: R.net >= 0 ? '#2F6B3F' : '#A8321F', tip: ft(R.net >= 0 ? 'Left over' : 'Shortfall', R.net) },
+  ], 'Income, fixed expenses, variable expenses and what is left');
+  const srcs = Object.entries(R.src), sum = k => srcs.reduce((a, [, s]) => a + s[k], 0);
+  $('bd-src').innerHTML = '<thead><tr><th>Source</th><th>Inflows (income)</th><th>Outflows (spending)</th><th>Transfers, not counted</th></tr></thead><tbody>' +
+    srcs.map(([n, s]) => `<tr><td><span class="src s-${esc(n.toLowerCase())}">${esc(n)}</span></td><td>${money2(s.income)}</td><td>${money2(s.expenses)}</td><td>${money2(s.transfer)}</td></tr>`).join('') +
+    `<tr class="sub"><td>Total</td><td>${money2(sum('income'))}</td><td>${money2(sum('expenses'))}</td><td>${money2(sum('transfer'))}</td></tr></tbody>`;
+  for (const tier of ['income', 'fixed', 'variable', 'transfer']) tierTable($('bd-' + tier), R, tier);
+}
+$('tab-budget').addEventListener('click', e => {
+  if (e.target.closest('select')) return;
+  const row = e.target.closest('tr.cat'); if (!row) return;
+  const id = row.dataset.cat; bOpen.has(id) ? bOpen.delete(id) : bOpen.add(id); renderBudget();
+});
+$('tab-budget').addEventListener('change', e => {
+  const sel = e.target.closest('select.cat'); if (!sel) return;
+  const key = B.merchantKey(state.budget.tx[+sel.dataset.tx].t), to = sel.value;
+  state.budget.overrides[key] = to; save();
+  const n = state.budget.tx.filter(x => B.merchantKey(x.t) === key).length;
+  bNote = `Moved ${n} transaction${n === 1 ? '' : 's'} labelled “${key}” to ${B.CAT[to].name}. New transactions with this label will go there too.`;
+  bOpen.add(to); renderBudget();
+});
+$('bd-month').addEventListener('change', e => { bMonth = e.target.value; renderBudget(); });
+async function loadTxFiles(fileList) {
+  const files = [...fileList].filter(f => /\.csv$/i.test(f.name) && !/^[.~]/.test(f.name));
+  if (!files.length) { state.budget.status = 'No CSV files were found in that selection.'; renderBudget(); return; }
+  const batches = [], bad = []; let skipped = 0;
+  for (const f of files) { const r = B.parseTransactions(await f.text(), state.settings.fx); if (r) { batches.push(r.tx); skipped += r.skipped; } else bad.push(f.name); }
+  const before = state.budget.tx.length;
+  state.budget.tx = B.mergeTx(state.budget.tx, batches);
+  const added = state.budget.tx.length - before;
+  state.budget.status = `Last load: ${files.length - bad.length} file${files.length - bad.length === 1 ? '' : 's'} read, ${added} new transaction${added === 1 ? '' : 's'} added.` + (skipped ? ` ${skipped} row${skipped === 1 ? '' : 's'} skipped (no date or amount).` : '') + (bad.length ? ` Not recognised as a bank export: ${bad.join(', ')}.` : '');
+  bNote = ''; save(); renderBudget();
+}
+for (const id of ['bd-dir', 'bd-files']) $(id).addEventListener('change', e => { loadTxFiles(e.target.files); e.target.value = ''; });
+$('bd-clear').addEventListener('click', () => {
+  if (!confirm('Remove all loaded transactions from this page? The CSV files are not touched, and your grouping choices are kept.')) return;
+  state.budget.tx = []; state.budget.status = ''; bNote = ''; save(); renderBudget();
+});
 
 /* ---------- wiring ---------- */
 function activeTab() { return document.querySelector('nav.tabs button[aria-selected="true"]').dataset.tab; }
@@ -614,6 +916,7 @@ function render() {
   renderOverview();                      // also updates the header line
   if (t === 'networth') renderNetWorth();
   if (t === 'forecast') renderForecast();
+  if (t === 'budget') renderBudget();
 }
 document.querySelectorAll('nav.tabs button').forEach(b => b.addEventListener('click', () => {
   document.querySelectorAll('nav.tabs button').forEach(x => x.setAttribute('aria-selected', x === b));
@@ -635,7 +938,8 @@ function fillSettings() {
 document.querySelectorAll('[data-set]').forEach(inp => inp.addEventListener('change', () => {
   const v = parseFloat(inp.value), sc = +(inp.dataset.scale || 1);
   if (!isFinite(v) || v < 0) { fillSettings(); return; }
-  putSet(inp.dataset.set, v / sc);
+  if (inp.dataset.set === 'retireAge') { putSet('retireAge', Math.min(90, Math.max(D.cur.age, Math.round(v)))); fillSettings(); }
+  else putSet(inp.dataset.set, v / sc);
   if (inp.dataset.set === 'fx') { state.settings.fxSource = 'manual'; state.settings.fxDate = null; }
   save(); render();
 }));
@@ -731,13 +1035,13 @@ $('bk-load').addEventListener('change', async e => {
     const s = JSON.parse(await f.text());
     if (!s.months || !s.accounts || !s.values) throw new Error();
     if (!confirm(`Replace everything on this page with the backup (latest month ${monthLabel(s.months[s.months.length - 1])})?`)) return;
-    s.settings = Object.assign(clone(Engine.DEFAULTS), s.settings); state = s;
+    s.settings = Object.assign(clone(Engine.DEFAULTS), s.settings); state = withBudget(s);
     save(); compute(); buildGrid(); fillSettings(); render(); defaultNewMonth();
   } catch (err) { alert('That file is not a Financial Plan backup.'); }
   e.target.value = '';
 });
 document.querySelectorAll('#horizon button').forEach(b => b.addEventListener('click', () => {
-  horizon = +b.dataset.h; document.querySelectorAll('#horizon button').forEach(x => x.setAttribute('aria-pressed', x === b)); renderForecast();
+  horizon = b.dataset.h; document.querySelectorAll('#horizon button').forEach(x => x.setAttribute('aria-pressed', x === b)); renderForecast();
 }));
 
 compute(); buildGrid(); fillSettings(); defaultNewMonth(); render();
